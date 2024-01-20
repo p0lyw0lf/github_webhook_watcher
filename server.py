@@ -1,12 +1,16 @@
+import click
 from sanic import Sanic
 from sanic.request import Request
 from sanic.response import text, HTTPResponse
 from sanic.log import logger
 
+import asyncio
 import hashlib
 import hmac
+import subprocess
 from typing import Optional
-import asyncio
+
+from config import Repository
 
 app = Sanic("github_webhook_watcher")
 app.update_config("./config.py")
@@ -64,39 +68,39 @@ async def handle_webhook(request: Request):
     repository_name = o_get(o_get(payload, "repository"), "full_name")
     config = app.config.REPOSITORIES.get(repository_name, None)
     if config is None:
-        logger.warn(
-            f"Got webhook for repository {repository_name}, but not "
-            "configured for it! Probably meant to update ./config.py"
-        )
+        logger.warn(f"Got webhook for repository {repository_name}, but not "
+                    "configured for it! Probably meant to update ./config.py")
         # Nothing to do: not configured
         return
 
-    logger.info(f"{config=}")
-
     ref = o_get(payload, "ref")
-    if ref != f"refs/heads/{config.ref}":
+    if ref != f"refs/heads/{config.branch}":
         # Nothing to do: wrong ref
         return
 
     # Only do one update at a time
     async with LOCKS[repository_name]:
-        pull_proc = await asyncio.create_subprocess_exec(
-            "git",
-            "pull",
-            "--ff-only",
-            config.remote or "origin",
-            config.branch,
-            cwd=config.local,
-            # Pass through stdout and stderr
-            stdout=None,
-            stderr=None,
-        )
-        exit_code = await pull_proc.wait()
-        if exit_code != 0:
-            logger.warn(
-                f"Pull for {repository_name} exited with code {exit_code}, "
-                "you might want to take a look at that!"
-            )
-            return
+        await asyncio.to_thread(do_update, config)
 
-        # TODO: after_update
+
+def do_update(repository_name: str, config: Repository):
+    logger.info(f"Running update for {repository_name=} {config=}")
+    pull_proc = subprocess.run(
+        "git",
+        "pull",
+        "--ff-only",
+        config.remote or "origin",
+        config.branch,
+        cwd=config.local,
+        # Pass through stdout and stderr
+        stdout=None,
+        stderr=None,
+    )
+    if exit_code != 0:
+        logger.warn(
+            f"Pull for {repository_name} exited with code {exit_code}, "
+            "you might want to take a look at that!")
+        return
+
+    # TODO: after_update
+    pass
