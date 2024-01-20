@@ -10,9 +10,13 @@ class Repository:
     """
     local: Path
     """
-    The branch name you want to track
+    The branch you want to track.
     """
     branch: str
+    """
+    The remote origin for this branch. Defaults to `"origin"`
+    """
+    remote: Optional[str]
     """
     The script to run after an update occurs
     Set to `None` to not run anything
@@ -21,10 +25,13 @@ class Repository:
 
 
 """
-Maps repository remotes to configurations
-TODO: what's the format for the `repository` in the webhook? to be seen.
+Maps repository remotes to configurations. Formatted like
+`"p0lyw0lf/github_webhook_watcher"`
 """
-REPOSITORIES: dict[str, Repository] = {}
+REPOSITORIES: dict[str, Repository] = {
+    "p0lyw0lf/github_webhook_watcher": Repository(Path("."), "main", None,
+                                                  None)
+}
 """
 The secret value you share with GitHub to authenticate webhook requests
 See
