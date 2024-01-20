@@ -80,27 +80,23 @@ async def handle_webhook(request: Request):
 
     # Only do one update at a time
     async with LOCKS[repository_name]:
-        await asyncio.to_thread(do_update, config)
+        await asyncio.to_thread(do_update, repository_name, config)
 
 
 def do_update(repository_name: str, config: Repository):
     logger.info(f"Running update for {repository_name=} {config=}")
     pull_proc = subprocess.run(
-        "git",
-        "pull",
-        "--ff-only",
-        config.remote or "origin",
-        config.branch,
+        ["git", "pull", "--ff-only", config.remote or "origin", config.branch],
         cwd=config.local,
-        # Pass through stdout and stderr
         stdout=None,
         stderr=None,
     )
-    if exit_code != 0:
+    if pull_proc.returncode != 0:
         logger.warn(
             f"Pull for {repository_name} exited with code {exit_code}, "
             "you might want to take a look at that!")
         return
 
     # TODO: after_update
-    pass
+
+    logger.info(f"Finished update for {repository_name=}")
