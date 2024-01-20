@@ -16,8 +16,10 @@ pip3 install -r requirements.txt
 
 ## Usage
 
-First, copy `config.py.template` to `config.py`, filling it out with the values
-you want.
+First, copy `secret.py.template` to `secret.py`, filling it out with the shared
+webhook secret.
+
+Next, edit `config.py` to have the values you want.
 
 Then, in the main directory of this repository, run:
 

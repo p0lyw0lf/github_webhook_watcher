@@ -37,7 +37,7 @@ def o_get(m: Optional[dict[str, object]], s: str) -> Optional[object]:
 
 @app.route("/")
 async def index(request):
-    return text("Hello, world.")
+    return text("I'm healthy!")
 
 
 @app.route("/webhook", methods=["POST"])
@@ -88,15 +88,19 @@ def do_update(repository_name: str, config: Repository):
     pull_proc = subprocess.run(
         ["git", "pull", "--ff-only", config.remote or "origin", config.branch],
         cwd=config.local,
-        stdout=None,
-        stderr=None,
     )
     if pull_proc.returncode != 0:
         logger.warn(
-            f"Pull for {repository_name} exited with code {exit_code}, "
-            "you might want to take a look at that!")
+            f"Pull for {repository_name} exited with code "
+            f"{pull_proc.returncode}, you might want to take a look at that!")
         return
 
-    # TODO: after_update
+    if config.after_update:
+        after_proc = subprocess.run([config.after_update], cwd=config.local)
+        if after_proc.returncode != 0:
+            logger.warn(
+                f"After update for {repository_name} exited with code "
+                f"{after_proc.returncode}, you might want to take a look at that!"
+            )
 
     logger.info(f"Finished update for {repository_name=}")

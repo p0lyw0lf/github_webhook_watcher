@@ -32,10 +32,3 @@ REPOSITORIES: dict[str, Repository] = {
     "p0lyw0lf/github_webhook_watcher": Repository(Path("."), "main", None,
                                                   None)
 }
-"""
-The secret value you share with GitHub to authenticate webhook requests
-See
-https://docs.github.com/en/webhooks/using-webhooks/validating-webhook-deliveries
-for more information
-"""
-SECRET: str = b"secret"

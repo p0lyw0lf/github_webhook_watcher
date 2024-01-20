@@ -1,0 +1,15 @@
+[Unit]
+Description=Github Webhook Watcher
+After=network.target
+StartLimitIntervalSec=0
+
+[Service]
+Type=simple
+Restart=always
+RestartSec=1
+User=bot-github_webhook_watcher
+WorkingDirectory=/home/bot-github_webhook_watcher/github_webhook_watcher
+ExecStart=/home/bot-github_webhook_watcher/github_webhook_watcher/run.sh
+
+[Install]
+WantedBy=multi-user.target
