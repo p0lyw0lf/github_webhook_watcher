@@ -96,7 +96,8 @@ def do_update(repository_name: str, config: Repository):
         return
 
     if config.after_update:
-        after_proc = subprocess.run([config.after_update], cwd=config.local)
+        after_proc = subprocess.run(
+            [f"./{config.after_update}"], cwd=config.local)
         if after_proc.returncode != 0:
             logger.warn(
                 f"After update for {repository_name} exited with code "
