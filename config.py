@@ -30,5 +30,5 @@ Maps repository remotes to configurations. Formatted like
 """
 REPOSITORIES: dict[str, Repository] = {
     "p0lyw0lf/github_webhook_watcher": Repository(Path("."), "main", None,
-                                                  None)
+                                                  Path(".") / "after.sh")
 }
