@@ -13,6 +13,7 @@ from config import Repository
 
 app = Sanic("github_webhook_watcher")
 app.update_config("./config.py")
+app.update_config("./secret.py")
 
 
 def verify_signature(body: bytes, signature: str) -> bool:
@@ -39,7 +40,7 @@ async def index(request):
     return text("I'm healthy!")
 
 
-@app.route("//webhook", methods=["POST"])
+@app.route("/webhook", methods=["POST"])
 async def webhook(request: Request) -> HTTPResponse:
     signature = request.headers["x-hub-signature-256"]
     if not verify_signature(request.body, signature):
