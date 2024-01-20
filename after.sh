@@ -3,5 +3,5 @@
 . .venv/bin/activate
 pip3 install --upgrade -r requirements.txt
 
-sudo systemctl daemon-reload
-sudo systemctl restart bot-github_webhook_watcher.service
+sudo -n systemctl daemon-reload
+sudo -n systemctl restart bot-github_webhook_watcher.service
