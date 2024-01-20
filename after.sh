@@ -1,6 +1,6 @@
 #!/bin/env sh
 
-source .venv/bin/activate
+. .venv/bin/activate
 pip3 install --upgrade -r requirements.txt
 
 sudo systemctl daemon-reload
