@@ -1,4 +1,3 @@
-import click
 from sanic import Sanic
 from sanic.request import Request
 from sanic.response import text, HTTPResponse
@@ -40,7 +39,7 @@ async def index(request):
     return text("I'm healthy!")
 
 
-@app.route("/webhook", methods=["POST"])
+@app.route("//webhook", methods=["POST"])
 async def webhook(request: Request) -> HTTPResponse:
     signature = request.headers["x-hub-signature-256"]
     if not verify_signature(request.body, signature):
@@ -100,7 +99,8 @@ def do_update(repository_name: str, config: Repository):
         if after_proc.returncode != 0:
             logger.warn(
                 f"After update for {repository_name} exited with code "
-                f"{after_proc.returncode}, you might want to take a look at that!"
+                f"{after_proc.returncode}, you might want to take a look at "
+                "that!"
             )
 
     logger.info(f"Finished update for {repository_name=}")
