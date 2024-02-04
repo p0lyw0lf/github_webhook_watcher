@@ -7,7 +7,7 @@ import asyncio
 import hashlib
 import hmac
 import subprocess
-from typing import Optional
+from typing import Any, Callable, Awaitable, Optional
 
 from config import Repository
 
@@ -46,23 +46,11 @@ async def webhook(request: Request) -> HTTPResponse:
     if not verify_signature(request.body, signature):
         return text("Invalid Signature", 403)
 
-    # This dance is needed to not discard the task from garbage collection
-    background_task = set()
-    task = asyncio.create_task(handle_webhook(request))
-    background_task.add(task)
-    task.add_done_callback(background_task.discard)
-
-    return text("Accepted", 202)
-
-
-LOCKS = {key: asyncio.Lock() for key in app.config.REPOSITORIES.keys()}
-
-
-async def handle_webhook(request: Request):
     github_event = request.headers["x-github-event"]
-    if github_event != "push":
-        # Nothing to do: not a push
-        return
+    handler = HANDLERS.get(github_event, None)
+
+    if handler is None:
+        return text(f"Ignoring request type {github_event}", 200)
 
     payload = request.json
     repository_name = o_get(o_get(payload, "repository"), "full_name")
@@ -71,8 +59,18 @@ async def handle_webhook(request: Request):
         logger.warn(f"Got webhook for repository {repository_name}, but not "
                     "configured for it! Probably meant to update ./config.py")
         # Nothing to do: not configured
-        return
+        return text(f"Ignoring repository {repository_name}", 200)
 
+    # This dance is needed to not discard the task from garbage collection
+    background_task = set()
+    task = asyncio.create_task(handler(payload, repository_name, config))
+    background_task.add(task)
+    task.add_done_callback(background_task.discard)
+
+    return text("Accepted", 202)
+
+
+async def handle_push(payload: Any, repository_name: str, config: Repository):
     ref = o_get(payload, "ref")
     if ref != f"refs/heads/{config.branch}":
         # Nothing to do: wrong ref
@@ -96,13 +94,39 @@ def do_update(repository_name: str, config: Repository):
         return
 
     if config.after_update:
-        after_proc = subprocess.run(
-            [f"./{config.after_update}"], cwd=config.local)
+        after_proc = subprocess.run([f"./{config.after_update}"],
+                                    cwd=config.local)
         if after_proc.returncode != 0:
             logger.warn(
                 f"After update for {repository_name} exited with code "
                 f"{after_proc.returncode}, you might want to take a look at "
-                "that!"
-            )
+                "that!")
 
     logger.info(f"Finished update for {repository_name=}")
+
+
+async def handle_release(
+        payload: Any,
+        repository_name: str,
+        config: Repository):
+    if o_get(payload, "action") != "released":
+        # Nothing to do; we only handle "true" releases
+        return
+
+    if config.after_release:
+        after_proc = subprocess.run([f"./{config.after_release}"],
+                                    cwd=config.local)
+        if after_proc.returncode != 0:
+            logger.warn(
+                f"After release for {repository_name} exited with code "
+                f"{after_proc.returncode}, you might want to take a look at "
+                "that!")
+
+    logger.info(f"Finished release for {repository_name=}")
+
+
+HANDLERS: dict[str, Callable[[Any, str, Repository], Awaitable[Any]]] = {
+    "push": handle_push,
+    "release": handle_release,
+}
+LOCKS = {key: asyncio.Lock() for key in app.config.REPOSITORIES.keys()}
